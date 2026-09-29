@@ -1,0 +1,95 @@
+{
+  "midi_bank_sha256": "502d4927fa0d60c26bce588ad885e9eed8177a1fcc0bb81437f36a26f46c3383",
+  "observed_stack": {
+    "platform": "macOS arm64",
+    "sample_rate": 44100,
+    "seconds": 0.5,
+    "vst3_sdk_commit": "3cdf9ca5d1f5b1b21e0a86832aa4abe55607bd96"
+  },
+  "outcomes": {
+    "dropped": 0,
+    "failures": 0,
+    "kept": 8
+  },
+  "outputs": [
+    {
+      "path": "audio/p000000_sus_c3.npz",
+      "sha256": "0641dea722773e9f8b2555cb549f4f81a74b87bccf3ac1ebd11809817bd0173f"
+    },
+    {
+      "path": "audio/p000000_gate_c2.npz",
+      "sha256": "730b2855e718d1972158beafd9f155bbdd131a82eb161cb678a34a4b250d64a6"
+    },
+    {
+      "path": "audio/p000001_sus_c3.npz",
+      "sha256": "7bef97c4c0a5e526d24b9f4b128cbbb282758efe7be741081c903f3e33fe29ec"
+    },
+    {
+      "path": "audio/p000001_gate_c2.npz",
+      "sha256": "3470a15f649c0f4578124eb66f87e83505bd30235998efe2c7a5dd088a69b455"
+    },
+    {
+      "path": "audio/p000002_sus_c3.npz",
+      "sha256": "39ec7f9cd2d3c641f4d0ff7f852864a91ecd64bdc290c9572620883a42cacb9c"
+    },
+    {
+      "path": "audio/p000002_gate_c2.npz",
+      "sha256": "85631b78481a7e005e39b2d95d538983bd3b49c09cf93130254847609cc93db0"
+    },
+    {
+      "path": "audio/p000003_sus_c3.npz",
+      "sha256": "a6a236cb01d6c8355dddcd1d4c6b8786e67c3aae9c68d3ad44da9157ff9bfa8e"
+    },
+    {
+      "path": "audio/p000003_gate_c2.npz",
+      "sha256": "a6a236cb01d6c8355dddcd1d4c6b8786e67c3aae9c68d3ad44da9157ff9bfa8e"
+    }
+  ],
+  "package": {
+    "dependency_lock_sha256": "ecc67083ff2d8f22f27e78589fc16a4f1cbde0a75a55cdbbc7ed1c8d03d4cebd",
+    "distribution": "vst-bench-ml",
+    "repository_url": "https://github.com/itsuzef/vst-bench-ml.git",
+    "source_archive": {
+      "files_sha256": "8478284ddc8b22d2a5f76d9715f2127b72345713fea6ab2c93359fb4a352424d",
+      "manifest_sha256": "1e7215c7f4cc93a6871b81683bca3685a9f4f1357033310aa587d562654a0a7f",
+      "project": "vst-bench-ml",
+      "schema": "vst-bench.source-archive/v1",
+      "upstream_commit": "02b281a9e7e86502d33d35db861010b19040a178"
+    },
+    "version": "0.1.0",
+    "wheel_bytes": 28535,
+    "wheel_filename": "vst_bench_ml-0.1.0-py3-none-any.whl",
+    "wheel_payload_file_count": 17,
+    "wheel_payload_sha256": "146bf45caecd2cae454c652e4893a55aff9e2564ef7e8ce2d817f2703db27fc0",
+    "wheel_record_path": "vst_bench_ml-0.1.0.dist-info/RECORD",
+    "wheel_record_sha256": "e0f7569cfc98959685d9635c1d09db20e31dea81444cc2cb17166eb996f60eb4",
+    "wheel_sha256": "d790e06a5c0543ff29bb33a8a2059a6f35ef6225f284890ad58522a96ab50416"
+  },
+  "plan_sha256": "d30f0b90f4e5f9cd26001d4a5218361c063fa17922ca4925dfc548e0397e76cd",
+  "rendered_count": 8,
+  "request": {
+    "keep_bad": true,
+    "requested_patches": 4,
+    "seed_label": "bon-369-v1",
+    "signal_mode": "all",
+    "signals": [
+      "sus_c3",
+      "gate_c2"
+    ]
+  },
+  "required_negative_cases": [
+    "package-wheel-renamed-sdist",
+    "package-wheel-unrelated-file",
+    "package-wheel-wrong-wheel",
+    "wrong-plugin-identity",
+    "unreachable-host",
+    "malformed-parameter-manifest",
+    "missing-normalization-dependency",
+    "out-of-range-parameter",
+    "reset-readback-mismatch",
+    "duplicate-attempt-id",
+    "corrupted-output",
+    "incomplete-attempt-ledger"
+  ],
+  "schema": "method-fixture.expected-output/v1"
+}

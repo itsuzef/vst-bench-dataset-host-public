@@ -1,0 +1,37 @@
+{
+  "schema": "method-fixture.midi-bank/v1",
+  "sample_rate": 44100,
+  "num_samples": 22050,
+  "signals": {
+    "sus_c3": [
+      {
+        "type": "note_on",
+        "channel": 1,
+        "note": 48,
+        "velocity": 0.8,
+        "sample_position": 0
+      },
+      {
+        "type": "note_off",
+        "channel": 1,
+        "note": 48,
+        "sample_position": 22049
+      }
+    ],
+    "gate_c2": [
+      {
+        "type": "note_on",
+        "channel": 1,
+        "note": 36,
+        "velocity": 0.8,
+        "sample_position": 0
+      },
+      {
+        "type": "note_off",
+        "channel": 1,
+        "note": 36,
+        "sample_position": 15434
+      }
+    ]
+  }
+}
