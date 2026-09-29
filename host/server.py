@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from source_archive import MANIFEST, verify_archive  # noqa: E402
 
 SDK_COMMIT = "3cdf9ca5d1f5b1b21e0a86832aa4abe55607bd96"
-SOURCE_REPOSITORY = "https://github.com/itsuzef/vst-bench-dataset-host.git"
+SOURCE_REPOSITORY = "https://github.com/itsuzef/vst-bench-dataset-host-public.git"
 PLUGIN_IDENTIFIER = "org.example.method-fixture.v1"
 PLUGIN_CLASS_UID = "5F94B1C27A624DF0A910B2D364E0F871"
 PLUGIN_NAME = "Method Fixture Instrument"

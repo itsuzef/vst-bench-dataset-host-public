@@ -48,22 +48,18 @@
   "package": {
     "dependency_lock_sha256": "ecc67083ff2d8f22f27e78589fc16a4f1cbde0a75a55cdbbc7ed1c8d03d4cebd",
     "distribution": "vst-bench-ml",
-    "repository_url": "https://github.com/itsuzef/vst-bench-ml.git",
-    "source_archive": {
-      "files_sha256": "8478284ddc8b22d2a5f76d9715f2127b72345713fea6ab2c93359fb4a352424d",
-      "manifest_sha256": "1e7215c7f4cc93a6871b81683bca3685a9f4f1357033310aa587d562654a0a7f",
-      "project": "vst-bench-ml",
-      "schema": "vst-bench.source-archive/v1",
-      "upstream_commit": "02b281a9e7e86502d33d35db861010b19040a178"
-    },
-    "version": "0.1.0",
-    "wheel_bytes": 28535,
-    "wheel_filename": "vst_bench_ml-0.1.0-py3-none-any.whl",
+    "git_commit": "25c839ba41ec6598a844dd2bbc0e91ae47073c3b",
+    "git_tree": "70a93c4013bf50306c6fc9edd78be446cb89b964",
+    "git_tree_listing_sha256": "d1852120711c6a43cd1dc82b9d0833f9145efd21a9bee755fe233420154af52b",
+    "repository_url": "https://github.com/itsuzef/vst-bench-ml-public.git",
+    "version": "0.1.1",
+    "wheel_bytes": 28421,
+    "wheel_filename": "vst_bench_ml-0.1.1-py3-none-any.whl",
     "wheel_payload_file_count": 17,
-    "wheel_payload_sha256": "146bf45caecd2cae454c652e4893a55aff9e2564ef7e8ce2d817f2703db27fc0",
-    "wheel_record_path": "vst_bench_ml-0.1.0.dist-info/RECORD",
-    "wheel_record_sha256": "e0f7569cfc98959685d9635c1d09db20e31dea81444cc2cb17166eb996f60eb4",
-    "wheel_sha256": "d790e06a5c0543ff29bb33a8a2059a6f35ef6225f284890ad58522a96ab50416"
+    "wheel_payload_sha256": "8f41fbe6ed6f0c4769ad4cf3e5f680a575fe119e3a79817c6fc96eaea05feba8",
+    "wheel_record_path": "vst_bench_ml-0.1.1.dist-info/RECORD",
+    "wheel_record_sha256": "fa0f64925209b9baf8746d3e4000104ad833e4880959016994868a9ac579337f",
+    "wheel_sha256": "ed84532975e91f879d5afc4cefc11977e97784b332255581e9baf801524f9516"
   },
   "plan_sha256": "d30f0b90f4e5f9cd26001d4a5218361c063fa17922ca4925dfc548e0397e76cd",
   "rendered_count": 8,

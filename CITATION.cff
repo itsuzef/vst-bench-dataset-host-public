@@ -5,9 +5,9 @@ type: software
 authors:
   - family-names: Hemimy
     given-names: Youssef
-version: 0.1.0
+version: 0.1.1
 license: MIT
-repository-code: "https://github.com/itsuzef/vst-bench-dataset-host"
+repository-code: "https://github.com/itsuzef/vst-bench-dataset-host-public"
 abstract: >-
   A rights-clean, sample-free VST3 fixture and offline host for independently
   verifying provenance-bound audio-plugin dataset generation workflows.

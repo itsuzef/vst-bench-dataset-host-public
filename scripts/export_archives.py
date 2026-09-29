@@ -8,6 +8,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -16,6 +17,8 @@ from source_archive import MANIFEST, digest, make_manifest, verify_archive  # no
 
 PACKAGE_FILES = {
     "CITATION.cff", "LICENSE", "NOTICE", "README.md", "docs/DESIGN.md",
+    "CHANGELOG.md", "CONTRIBUTING.md", "docs/HISTORY.md", "docs/README.md",
+    "docs/INSTALL.md", "docs/USAGE.md", "docs/TROUBLESHOOTING.md",
     "docs/RELEASE.md", "pyproject.toml", "requirements/lock.txt",
     "scripts/introspect_plugin.py", "scripts/profile_render.py",
     "src/vst_bench_ml/__init__.py", "src/vst_bench_ml/batch.py",
@@ -33,6 +36,8 @@ PACKAGE_FILES = {
 HOST_FILES = {
     "CITATION.cff", "CMakeLists.txt", "LICENSE", "OUTPUT-LICENSE", "THIRD_PARTY.md",
     "docs/PROTOCOL.md", "docs/ARCHIVES.md", "docs/ARCHIVE-README.md",
+    "CHANGELOG.md", "CONTRIBUTING.md", "docs/HISTORY.md", "docs/QUICKSTART.md",
+    "docs/VALIDATION.md", "docs/RELEASE.md",
     "fixture/controller.cpp", "fixture/controller.h", "fixture/factory.cpp",
     "fixture/ids.h", "fixture/processor.cpp", "fixture/processor.h",
     "fixtures/expected-output.json", "fixtures/midi-bank.json",
@@ -99,8 +104,9 @@ def export(package: Path, host: Path, output: Path, allow_dirty_host: bool = Fal
     if package_commit != expected["package"]["git_commit"]:
         raise ValueError("package commit differs from the validated baseline")
     output.mkdir(parents=True)
-    package_root = output / "vst-bench-ml-0.1.0"
-    host_root = output / "vst-bench-dataset-host-0.1.0"
+    version = tomllib.loads((package / "pyproject.toml").read_text())["project"]["version"]
+    package_root = output / f"vst-bench-ml-{version}"
+    host_root = output / f"vst-bench-dataset-host-{version}"
     copy_allowed(package, package_root, PACKAGE_FILES)
     package_identity = seal(package_root, "vst-bench-ml", package_commit)
     copy_allowed(host, host_root, HOST_FILES)
