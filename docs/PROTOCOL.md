@@ -80,5 +80,10 @@ structurally valid wrong wheel. It also reseals a copy after deleting one
 attempt and proves that the incomplete ledger is still rejected.
 
 This protocol and its observed outputs establish behavior only for the pinned
-private stack. They do not establish public release rights or cross-machine
-audio identity.
+tested stack. They do not establish cross-machine audio identity. Source licensing
+is documented in [LICENSE](../LICENSE), and qualifying sample-free generated
+fixture outputs are covered by [OUTPUT-LICENSE](../OUTPUT-LICENSE).
+
+The recorded `rights_class` value `private-self-authored-no-distribution-grant`
+and embedded plugin version `0.1.0-private` are historical identity labels retained
+for provenance continuity; current licensing is documented in the files above.

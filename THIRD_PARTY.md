@@ -15,8 +15,8 @@ by this repository.
 - License authority: the upstream `LICENSE.txt` and license notices at the
   pinned identities.
 - Use here: compile the self-authored VST3 fixture and offline runner.
-- Redistribution action: unresolved; no binaries or SDK source may be released
-  from this private repository without the later Chef-owned release review.
+- This repository contains no SDK source or binaries; users fetch the SDK
+  themselves under its upstream licence.
 
 ## Separate orchestration checkout
 
