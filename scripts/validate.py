@@ -274,10 +274,11 @@ def package_ruff_paths(package_repo: Path) -> list[str]:
         text=True,
     )
     paths = [line for line in result.stdout.splitlines() if line]
-    included = [path for path in paths if path not in PACKAGE_QUARANTINE]
-    if not included or PACKAGE_QUARANTINE - set(paths):
-        fail("package Ruff surface does not match the immutable quarantine boundary")
-    return included
+    if PACKAGE_QUARANTINE & set(paths):
+        fail("public package checkout contains quarantined paths")
+    if not paths:
+        fail("public package checkout has no Python lint surface")
+    return paths
 
 
 def write_wrong_wheel(path: Path) -> None:

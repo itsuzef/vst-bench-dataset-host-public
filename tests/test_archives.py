@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -165,6 +166,22 @@ def test_public_allowlists_exclude_private_files():
     assert not PACKAGE_FILES & PACKAGE_QUARANTINE
     assert not {"docs/CONTRACT.md", "docs/RIGHTS.md", "docs/LICENSE-DECISION.md"} & HOST_FILES
     assert not any(name.startswith((".git/", ".github/")) for name in PACKAGE_FILES | HOST_FILES)
+
+
+@pytest.mark.parametrize("include_private", [False, True])
+def test_public_git_lint_surface(tmp_path, include_private):
+    subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True)
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "allowed.py").write_text("pass\n")
+    if include_private:
+        (scripts / "smoke_generate.py").write_text("pass\n")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "scripts"], check=True)
+    if include_private:
+        with pytest.raises(SystemExit, match="quarantined paths"):
+            package_ruff_paths(tmp_path)
+    else:
+        assert package_ruff_paths(tmp_path) == ["scripts/allowed.py"]
 
 
 def test_zip_is_repeatable_and_has_no_history(snapshot, tmp_path):
