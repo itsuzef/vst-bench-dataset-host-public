@@ -4,6 +4,18 @@ This walkthrough targets macOS arm64 and Python 3.12. Install Xcode command-line
 tools, CMake >=3.25, and Git first. Use an empty working directory. Commands are
 for a POSIX shell and keep environments, builds, and outputs outside source roots.
 
+Python 3.12 below is an example interpreter, not a requirement that all users
+recreate the historical validation stack. The revised package source allows
+compatible dependencies for ordinary installation; published 0.1.1 retains its
+original pins until a new release. Install the revised package checkout to test
+that policy before release. The exact historical reproduction procedure still
+uses its pinned Python/dependency environment. See the package's
+[installation guide](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/INSTALL.md).
+
+The Python package's Windows/Linux/macOS compatibility matrix is separate from
+this macOS native-host walkthrough. Building a compatible host and plugin on
+another platform requires its native toolchain and additional validation.
+
 ## 1. Get the sources and install the Python package
 
 ```sh
