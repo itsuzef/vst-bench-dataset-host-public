@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reject unlisted dataset files, symbolic links, and non-regular entries during verification.
 - Compare every active exact dependency pin with the selected interpreter's
   installed version before release validation and manifest finalization.
 - Add a standalone environment check and record its result in companion manifests.

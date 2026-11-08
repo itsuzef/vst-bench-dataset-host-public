@@ -39,6 +39,16 @@ Install into a fresh environment with `pip --require-hashes` to check downloaded
 archive hashes. Native-library hashes are recorded separately. Offline dataset
 verification checks stored artifacts and does not require the original environment.
 
+## Dataset file inventory
+
+Companion validation requires only `manifest.json`, the bound records and attempt
+ledgers, and declared outputs inside each run directory. Added files (including
+hidden files), symbolic links, and other non-regular entries are rejected. Empty
+directories are ignored. Keep traces, logs, reports, and notes outside each run
+directory. Companion conformance has no opt-out. The core CLI's
+`--allow-extra-files` option applies to core datasets and does not validate a
+finalized companion attempt ledger.
+
 ## Run complete release validation
 
 From a working directory containing sibling `vst-bench-ml-public` and

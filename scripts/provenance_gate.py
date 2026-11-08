@@ -768,6 +768,30 @@ def append_negative_evidence(
     return manifest
 
 
+def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> None:
+    """Reject unlisted files and links without traversing linked directories."""
+    identities = [artifacts["records"], artifacts["failure_ledger"], *artifacts["outputs"]]
+    allowed = {manifest_name, *(item["path"] for item in identities)}
+    try:
+        def walk_error(error: OSError) -> None:
+            raise error
+
+        for directory, folders, files in os.walk(root, followlinks=False, onerror=walk_error):
+            for name in sorted(folders + files):
+                entry = Path(directory) / name
+                relative = entry.relative_to(root).as_posix()
+                if entry.is_symlink():
+                    raise GateError(f"dataset contains a symbolic link: {relative}")
+                if entry.is_dir():
+                    continue
+                if not entry.is_file():
+                    raise GateError(f"dataset contains a non-regular entry: {relative}")
+                if relative not in allowed:
+                    raise GateError(f"unlisted dataset file: {relative}")
+    except OSError as exc:
+        raise GateError(f"cannot inspect dataset file inventory: {exc}") from exc
+
+
 def validate_run(
     run_dir: Path, required_negative_cases: set[str] | None = None
 ) -> dict[str, Any]:
@@ -898,6 +922,9 @@ def validate_run(
         if not path.is_file() or file_identity(path, run_dir) != identity:
             raise GateError(f"bound output artifact mismatch: {identity.get('path')}")
 
+    if (run_dir / "manifest.json").is_symlink():
+        raise GateError("dataset manifest is a symbolic link")
+    verify_file_inventory(run_dir, "manifest.json", artifacts)
     records = read_jsonl(run_dir / artifacts["records"]["path"])
     entries = read_jsonl(run_dir / artifacts["failure_ledger"]["path"])
     for sequence, entry in enumerate(entries):

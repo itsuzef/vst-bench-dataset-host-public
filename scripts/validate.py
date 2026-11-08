@@ -691,6 +691,30 @@ else:
         )
         negative_evidence.append(evidence(case_id, stage, code, result))
 
+    inventory = work_dir / "inventory-check"
+    shutil.copytree(run2, inventory)
+    unlisted = inventory / "audio" / "unlisted.npz"
+    unlisted.write_bytes(b"unlisted")
+    try:
+        validate_run(inventory)
+    except GateError as exc:
+        if "unlisted dataset file" not in str(exc):
+            raise
+        print(f"PASS: added file rejected: {exc}", flush=True)
+    else:
+        fail("unlisted dataset file was accepted")
+    unlisted.unlink()
+    validate_run(inventory)
+    (inventory / expected["outputs"][0]["path"]).unlink()
+    try:
+        validate_run(inventory)
+    except GateError as exc:
+        if "output artifact mismatch" not in str(exc):
+            raise
+        print(f"PASS: deleted output rejected: {exc}", flush=True)
+    else:
+        fail("deleted output was accepted")
+
     corrupt = work_dir / "negative-corrupt"
     shutil.copytree(run2, corrupt)
     first_output = corrupt / expected["outputs"][0]["path"]
