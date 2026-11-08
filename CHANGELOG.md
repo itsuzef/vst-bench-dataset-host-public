@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Compare every active exact dependency pin with the selected interpreter's
+  installed version before release validation and manifest finalization.
+- Add a standalone environment check and record its result in companion manifests.
+- Reject changed or missing dependencies even when the lockfile itself is unchanged.
+
 ## 0.1.1
 
 - Introduce a public Git source repository derived from the published archive.

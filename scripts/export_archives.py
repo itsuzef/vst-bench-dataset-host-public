@@ -43,8 +43,8 @@ HOST_FILES = {
     "fixtures/expected-output.json", "fixtures/midi-bank.json",
     "fixtures/parameter-manifest.json", "host/runner.cpp", "host/server.py",
     "scripts/build.sh", "scripts/provenance_gate.py", "scripts/validate.py",
-    "scripts/source_archive.py", "scripts/export_archives.py",
-    "tests/test_server.py", "tests/test_archives.py",
+    "scripts/source_archive.py", "scripts/export_archives.py", "scripts/check_environment.py",
+    "tests/test_server.py", "tests/test_archives.py", "tests/test_dependencies.py",
 }
 
 

@@ -159,6 +159,103 @@ def _normalized_distribution(value: str) -> str:
     return re.sub(r"[-_.]+", "-", value).casefold()
 
 
+def dependency_lock_identity(
+    dependency_lock: Path, python: Path, expected_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Compare every active exact lock pin against the selected interpreter."""
+    try:
+        source = dependency_lock.read_bytes()
+        text = source.decode("utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise GateError("dependency lock is unreadable or not UTF-8") from exc
+    digest = hashlib.sha256(source).hexdigest()
+    if expected_sha256 is not None and digest != expected_sha256:
+        raise GateError("dependency-lock checksum differs from the locked expectation")
+    code = r'''
+import importlib.metadata
+import json
+import re
+import sys
+
+try:
+    from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
+    from packaging.version import Version
+except ImportError:
+    print(json.dumps({"errors": ["packaging must be installed in the selected validation interpreter"]}))
+    raise SystemExit(1)
+
+text = json.load(sys.stdin)["text"]
+text = re.sub(r"\\\r?\n", "", text)
+hash_pattern = re.compile(r"(?:^|\s)--hash(?:=|\s+)sha256:[0-9a-fA-F]{64}(?=\s|$)")
+items, skipped, errors, seen = [], [], [], set()
+for number, line in enumerate(text.splitlines(), 1):
+    line = line.strip()
+    if not line or line.startswith("#"):
+        continue
+    line = re.sub(r"\s+#.*$", "", line)
+    requirement, hashes = hash_pattern.subn("", line)
+    try:
+        req = Requirement(requirement.strip())
+        pins = list(req.specifier)
+        if req.url or req.extras or len(pins) != 1 or pins[0].operator != "==" or "*" in pins[0].version:
+            raise ValueError("require one exact name==version pin")
+        locked = Version(pins[0].version)
+        if not hashes:
+            raise ValueError("require SHA-256 archive hashes")
+        name = canonicalize_name(req.name)
+        if req.marker and not req.marker.evaluate():
+            skipped.append({"distribution": name, "locked_version": str(locked), "marker": str(req.marker)})
+            continue
+        if name in seen:
+            raise ValueError("duplicate active distribution")
+        seen.add(name)
+    except Exception as exc:
+        reason = str(exc) if type(exc) is ValueError else "malformed or unsupported requirement"
+        errors.append(f"lock line {number}: {reason}")
+        continue
+    try:
+        actual = importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        errors.append(f"{name}: expected {locked}, not installed")
+        continue
+    if Version(actual) != locked:
+        errors.append(f"{name}: expected {locked}, installed {actual}")
+    items.append({"distribution": name, "locked_version": str(locked), "version": actual})
+if not items and not errors:
+    errors.append("dependency lock has no active pinned distributions")
+print(json.dumps({"items": sorted(items, key=lambda x: x["distribution"]),
+                  "skipped": sorted(skipped, key=lambda x: x["distribution"]), "errors": errors}))
+raise SystemExit(1 if errors else 0)
+'''
+    try:
+        result = subprocess.run(
+            [os.path.abspath(python), "-I", "-c", code],
+            input=json.dumps({"text": text}), capture_output=True,
+            encoding="utf-8", timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise GateError("selected dependency-validation interpreter could not be run") from exc
+    try:
+        observed = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GateError(f"dependency version probe failed: {result.stderr.strip()}") from exc
+    if not isinstance(observed, dict) or not isinstance(observed.get("errors"), list):
+        raise GateError("dependency version probe returned malformed results")
+    if result.returncode or observed.get("errors"):
+        details = "; ".join(observed.get("errors", [])) or result.stderr.strip()
+        raise GateError(f"dependency lock mismatch: {details}")
+    return {
+        "schema": "vst-bench-ml.dependency-lock/v1",
+        "lock_filename": dependency_lock.name,
+        "lock_bytes": len(source),
+        "lock_sha256": digest,
+        "items": observed["items"],
+        "items_sha256": canonical_sha256(observed["items"]),
+        "skipped": observed["skipped"],
+    }
+
+
 def _wheel_archive_identity(
     wheel: Path,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -510,6 +607,9 @@ def finalize_run(
     midi_bank: Path,
     expected_package: dict[str, Any],
 ) -> dict[str, Any]:
+    lock_verification = dependency_lock_identity(
+        dependency_lock, python, expected_package["dependency_lock_sha256"]
+    )
     manifest_path = run_dir / "manifest.json"
     ledger_path = run_dir / "failures.jsonl"
     manifest = read_json(manifest_path)
@@ -604,6 +704,7 @@ def finalize_run(
             "lock_filename": dependency_lock.name,
             "lock_bytes": dependency_lock.stat().st_size,
             "lock_sha256": sha256_file(dependency_lock),
+            "lock_verification": lock_verification,
             "native_libraries": native_library_identities(python),
         }
     )

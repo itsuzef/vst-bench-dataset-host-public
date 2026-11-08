@@ -24,6 +24,7 @@ from provenance_gate import (  # noqa: E402
     GateError,
     _reseal,
     append_negative_evidence,
+    dependency_lock_identity,
     file_identity,
     finalize_run,
     normalized_attempts,
@@ -386,6 +387,13 @@ def main() -> None:
         host_archive = verify_archive(repo, "vst-bench-dataset-host")
     if set(expected.get("required_negative_cases", [])) != NEGATIVE_CASES:
         fail("locked expected-output negative-case set is incomplete")
+    try:
+        lock_identity = dependency_lock_identity(
+            dependency_lock, python, expected["package"]["dependency_lock_sha256"]
+        )
+    except GateError as exc:
+        fail(str(exc))
+    print(f"PASS: installed versions match lock ({len(lock_identity['items'])} distributions)")
     env = dict(os.environ)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env.pop("PYTHONPATH", None)
@@ -738,7 +746,7 @@ else:
 
     print("PASS: exact built-wheel package provenance and verified source identity")
     print("PASS: wheel archive, RECORD, installed payload, and imported module identities")
-    print("PASS: complete dependency-lock and installed native-library identities")
+    print("PASS: installed dependency versions match lock; native-library identities recorded")
     print("PASS: MIDI bank, reset policy, ordered parameters/readback, and rendered count")
     print("PASS: 2 deterministic runs; 8 kept attempts per append-only ledger")
     print(f"PASS: plan SHA-256 {expected['plan_sha256']}")
