@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Youssef Hemimy
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include "public.sdk/source/vst/vsteditcontroller.h"

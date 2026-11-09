@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Strict, history-free source snapshot identities (not signatures)."""
 
 from __future__ import annotations

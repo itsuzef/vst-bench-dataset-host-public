@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Run the repaired deterministic workflow and every BON-678 gate."""
 
 from __future__ import annotations

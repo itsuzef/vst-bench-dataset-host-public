@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.25)
 
 if(APPLE)

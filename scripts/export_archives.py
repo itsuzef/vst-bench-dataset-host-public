@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Prepare allowlisted local snapshots; never publish or include Git history."""
 
 from __future__ import annotations

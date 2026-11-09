@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Check installed versions against the companion's hashed, exact requirements lock."""
 
 from __future__ import annotations

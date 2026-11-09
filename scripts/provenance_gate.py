@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Finalize and verify the BON-678 provenance and append-only attempt ledger."""
 
 from __future__ import annotations
