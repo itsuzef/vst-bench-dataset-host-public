@@ -94,3 +94,10 @@ This is the normal generate-and-verify workflow. It checks stored artifact integ
 The [release validation](VALIDATION.md) additionally compares two runs, checks exact
 expected hashes, binds the installed wheel and complete environment, and exercises
 negative cases. That evidence is scoped to the tested environment.
+
+## Preview output before building
+
+The package repository provides [historical 0.1.1 manifest and records examples](https://github.com/itsuzef/vst-bench-ml-public/tree/f90ee6785ab4b31d78d90c34a6a1f4be7e2f5456/docs/examples/fixture-output)
+from the sample-free fixture release validation. They are explicitly abbreviated
+documentation, not a complete dataset or a verification fixture. No build is needed
+to read them; this walkthrough generates a complete dataset separately.
