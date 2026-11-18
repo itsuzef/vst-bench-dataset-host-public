@@ -173,14 +173,14 @@ Request readRequest(const std::string &path) {
   if (request.sample_rate < 1 || request.num_samples < 1) {
     throw std::runtime_error("sample_rate and num_samples must be positive");
   }
-  if (request.parameters.size() != (request.vital ? 1U : MethodFixture::kParameterCount)) {
+  if (request.parameters.size() != (request.vital ? 3U : MethodFixture::kParameterCount)) {
     throw std::runtime_error("render request must bind all fixture parameters");
   }
 
   std::array<bool, MethodFixture::kParameterCount> seen{};
   for (const auto &parameter : request.parameters) {
     if ((!request.vital && parameter.id >= MethodFixture::kParameterCount) ||
-        parameter.value < 0.0 || parameter.value > 1.0 || (!request.vital && seen[parameter.id])) {
+        !std::isfinite(parameter.value) || parameter.value < 0.0 || parameter.value > 1.0 || (!request.vital && seen[parameter.id])) {
       throw std::runtime_error(
           "render request has invalid or duplicate parameter");
     }
@@ -255,13 +255,13 @@ void writeWav(const std::string &path, int32 sample_rate, const float *left,
   }
 }
 
-Steinberg::Vst::ParameterInfo vitalControl(const Plugin &plugin) {
+Steinberg::Vst::ParameterInfo vitalControl(const Plugin &plugin, const std::u16string &name = u"Volume") {
   if (plugin.class_info.ID().toString() != "ABCDEF019182FAEB4F70656E5669616C")
     throw std::runtime_error("unexpected Vital class identity");
   for (int32 i = 0; i < plugin.controller->getParameterCount(); ++i) {
     Steinberg::Vst::ParameterInfo info{};
     if (plugin.controller->getParameterInfo(i, info) != Steinberg::kResultOk) continue;
-    if (std::u16string(info.title) == u"Volume") return info;
+    if (std::u16string(info.title) == name) return info;
   }
   throw std::runtime_error("Vital Volume parameter unavailable");
 }
@@ -271,7 +271,19 @@ void inspect(const std::string &path) {
   if (plugin.class_info.ID().toString() == "ABCDEF019182FAEB4F70656E5669616C") {
     auto info = vitalControl(plugin);
     std::cout << "{\"volume_id\":" << info.id << ",\"volume_default\":"
-              << std::setprecision(17) << info.defaultNormalizedValue << ",";
+              << std::setprecision(17) << info.defaultNormalizedValue << ",\"controls\":[";
+    for (int32 i = 0; i < plugin.controller->getParameterCount(); ++i) {
+      Steinberg::Vst::ParameterInfo control{};
+      if (plugin.controller->getParameterInfo(i, control) != Steinberg::kResultOk)
+        throw std::runtime_error("parameter discovery failed");
+      std::string title;
+      for (auto c : control.title) { if (!c) break; title += c < 128 ? static_cast<char>(c) : '?'; }
+      if (i) std::cout << ",";
+      std::cout << "{\"id\":" << control.id << ",\"name\":\"" << jsonEscape(title)
+                << "\",\"default\":" << control.defaultNormalizedValue
+                << ",\"steps\":" << control.stepCount << "}";
+    }
+    std::cout << "],";
   } else std::cout << "{";
   std::cout << "\"class_uid\":\""
             << jsonEscape(plugin.class_info.ID().toString()) << "\",\"name\":\""
@@ -289,8 +301,12 @@ void render(const std::string &plugin_path, const std::string &request_path,
   const Request request = readRequest(request_path);
   auto plugin = loadPlugin(plugin_path);
 
-  if (request.vital && request.parameters.front().id != vitalControl(plugin).id)
-    throw std::runtime_error("invalid Vital parameter id");
+  if (request.vital) {
+    const std::array<std::u16string, 3> names{u"Volume", u"Oscillator 1 Pan", u"Voice Transpose"};
+    for (size_t i = 0; i < names.size(); ++i)
+      if (request.parameters[i].id != vitalControl(plugin, names[i]).id)
+        throw std::runtime_error("invalid Vital parameter mapping");
+  }
   SpeakerArrangement output_arrangement = SpeakerArr::kStereo;
   if (!request.vital && plugin.processor->setBusArrangements(nullptr, 0, &output_arrangement,
                                            1) != kResultOk) {
@@ -326,12 +342,13 @@ void render(const std::string &plugin_path, const std::string &request_path,
   ParameterChanges parameter_changes(
       static_cast<int32>(MethodFixture::kParameterCount));
   std::vector<double> readback(request.parameters.size());
-  for (const auto &parameter : request.parameters) {
+  for (size_t slot = 0; slot < request.parameters.size(); ++slot) {
+    const auto &parameter = request.parameters[slot];
     if (plugin.controller->setParamNormalized(parameter.id, parameter.value) !=
         kResultOk) {
       throw std::runtime_error("controller rejected fixture parameter");
     }
-    readback[request.vital ? 0 : parameter.id] =
+    readback[request.vital ? slot : parameter.id] =
         plugin.controller->getParamNormalized(parameter.id);
     int32 queue_index = 0;
     auto *queue = parameter_changes.addParameterData(parameter.id, queue_index);

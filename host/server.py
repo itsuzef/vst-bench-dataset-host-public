@@ -216,15 +216,23 @@ class FixtureHost:
                 version = plistlib.load(stream)["CFBundleShortVersionString"]
             if version != "1.0.6" or inspection.get("volume_id") != 51696:
                 raise RpcError(-32011, "Vital profile requires macOS VST3 version 1.0.6")
-            self.definitions = ({"index": 0, "parameter_id": str(inspection["volume_id"]),
-                                 "name": "Volume", "num_steps": 2147483647,
-                                 "default_value": inspection["volume_default"]},)
-            self.parameters = {0: inspection["volume_default"]}
+            expected = [("Volume", 51696), ("Oscillator 1 Pan", 50800), ("Voice Transpose", 54455)]
+            controls = inspection.get("controls", [])
+            selected = []
+            for index, (name, native_id) in enumerate(expected):
+                matches = [c for c in controls if c["name"] == name and c["id"] == native_id]
+                if len(matches) != 1:
+                    raise RpcError(-32011, "unsupported Vital control mapping")
+                selected.append({"index": index, "parameter_id": str(native_id), "name": name,
+                                 "num_steps": matches[0]["steps"] or 2147483647,
+                                 "default_value": matches[0]["default"]})
+            self.definitions = tuple(selected)
+            self.parameters = {c["index"]: c["default_value"] for c in selected}
             self.vital = {"name": "Vital", "vendor": inspection["vendor"],
                           "version": version, "identifier": observed_uid,
                           "rights_class": "third-party-user-supplied"}
             self.reset_policy = {"name": "fresh-runner-process-and-plugin-instance-per-render",
-                                 "steps": ["instantiate Vital", "apply and read back Volume",
+                                 "steps": ["instantiate Vital", "apply and read back three discovered controls",
                                            "activate and process MIDI offline"]}
         elif (
             observed_uid != PLUGIN_CLASS_UID
@@ -319,6 +327,20 @@ class FixtureHost:
         }
 
     def render_audio(self, params: dict[str, Any]) -> dict[str, Any]:
+        attempt = params.get("attempt_id", Path(params.get("output_path", "")).stem)
+        previously_seen = attempt in self.attempt_ids if isinstance(attempt, str) else True
+        try:
+            return self._render_audio(params)
+        except RpcError as error:
+            if self.vital and attempt and not previously_seen:
+                self.attempt_ids.add(attempt)
+                self._append_attempt({"schema": "vital.render-trace/v1", "attempt_id": attempt,
+                                      "outcome": "failed", "stage": "render",
+                                      "error_code": error.code, "message": str(error),
+                                      "requested_parameters": {str(k): v for k, v in self.parameters.items()}})
+            raise
+
+    def _render_audio(self, params: dict[str, Any]) -> dict[str, Any]:
         if self.plugin_path is None:
             raise RpcError(-32001, "no plugin is loaded")
         try:
@@ -416,6 +438,7 @@ class FixtureHost:
                 "stage": "render",
                 "retry_count": 0,
                 "midi_events_sha256": canonical_sha256(midi_events),
+                "requested_parameters": {str(k): v for k, v in self.parameters.items()},
                 "parameter_readback": [
                     {
                         "index": index,

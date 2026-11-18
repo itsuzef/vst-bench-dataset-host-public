@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "plugin": "ABCDEF019182FAEB4F70656E5669616C",
+  "param_count": 3,
+  "source": "Vital 1.0.6 discovered three-control native profile",
+  "params": [
+    {
+      "id": "51696",
+      "index": 0,
+      "name": "Volume",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.7396560311317444
+    },
+    {
+      "id": "50800",
+      "index": 1,
+      "name": "Oscillator 1 Pan",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5
+    },
+    {
+      "id": "54455",
+      "index": 2,
+      "name": "Voice Transpose",
+      "type": "int",
+      "min": -48,
+      "max": 48,
+      "default": 0,
+      "default_norm": 0.5
+    }
+  ]
+}

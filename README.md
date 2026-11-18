@@ -1,6 +1,6 @@
 # vst-bench-dataset-host
 
-For the macOS Vital 1.0.6 Volume profile, see [Vital instructions](docs/VITAL.md). The fixture protocol below describes Method Fixture.
+For the macOS Vital 1.0.6 three-control profile, see [Vital instructions](docs/VITAL.md). The fixture protocol below describes Method Fixture.
 
 A sample-free VST3 test instrument and offline host for demonstrating
 [`vst-bench-ml`](https://github.com/itsuzef/vst-bench-ml-public) dataset generation and checking its provenance.
@@ -17,9 +17,9 @@ CMake >=3.25, AppleClang/Xcode command-line tools, Git, and network access to fe
 the pinned VST3 SDK. Builds and generated results belong outside the source tree.
 
 The revised native host supports Method Fixture and the narrow macOS Vital 1.0.6
-Volume profile linked above. Its Vital checker compares core records with an
-external complete all-kept trace; it does not apply fixture finalization or verify
-mixed kept/dropped/failed runs. Separate Pedalboard repeatability measurements do
+three-control profile linked above. Its Vital checker compares core records and
+render-stage terminal events with an external trace and exact plan; it does not apply fixture finalization. See the linked walkthrough for the exact
+mixed-outcome scope and failure-injection limits. Separate Pedalboard repeatability measurements do
 not establish native support for Podolski or Triple Cheese. Supporting arbitrary
 plugins requires another compatible host or additional implementation and validation.
 The larger `vst-bench` MCP testing application is not needed for this workflow.
