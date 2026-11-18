@@ -75,6 +75,7 @@ elseif(WIN32)
     )
 endif()
 target_link_libraries(method_fixture_runner PRIVATE sdk_hosting)
+target_include_directories(method_fixture_runner SYSTEM PRIVATE ${vst3sdk_SOURCE_DIR})
 target_include_directories(method_fixture_runner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(method_fixture_runner PRIVATE
     METHOD_FIXTURE_SDK_COMMIT="3cdf9ca5d1f5b1b21e0a86832aa4abe55607bd96"

@@ -9,7 +9,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
+import plistlib
 import subprocess
 import sys
 import tempfile
@@ -102,10 +104,10 @@ def observed_at() -> str:
 
 
 def validate_readback(expected: dict[int, float], actual: list[float]) -> None:
-    if len(actual) != len(PARAMETERS):
+    if len(actual) != len(expected):
         raise RpcError(-32021, "reset/readback mismatch: wrong parameter count")
     for index, expected_value in expected.items():
-        if abs(float(actual[index]) - expected_value) > 1e-9:
+        if not math.isclose(float(actual[index]), expected_value, rel_tol=0, abs_tol=1e-9):
             raise RpcError(
                 -32021,
                 f"reset/readback mismatch at parameter {index}: "
@@ -126,6 +128,9 @@ def validate_attempt_ids(entries: list[dict[str, Any]]) -> None:
 
 class FixtureHost:
     def __init__(self, runner: Path, repo_root: Path, attempt_trace: Path | None = None):
+        self.definitions = PARAMETERS
+        self.vital = None
+        self.reset_policy = RESET_POLICY
         self.runner = runner.resolve()
         self.repo_root = repo_root.resolve()
         self.plugin_path: Path | None = None
@@ -204,7 +209,24 @@ class FixtureHost:
 
         inspection = self._runner_call("inspect", str(plugin_path))
         observed_uid = str(inspection.get("class_uid", "")).replace("-", "").upper()
-        if (
+        if observed_uid == "ABCDEF019182FAEB4F70656E5669616C" and inspection.get("name") == "Vital":
+            if inspection.get("sdk_commit") != SDK_COMMIT or not plugin_path.is_dir():
+                raise RpcError(-32011, "unsupported Vital build")
+            with (plugin_path / "Contents/Info.plist").open("rb") as stream:
+                version = plistlib.load(stream)["CFBundleShortVersionString"]
+            if version != "1.0.6" or inspection.get("volume_id") != 51696:
+                raise RpcError(-32011, "Vital profile requires macOS VST3 version 1.0.6")
+            self.definitions = ({"index": 0, "parameter_id": str(inspection["volume_id"]),
+                                 "name": "Volume", "num_steps": 2147483647,
+                                 "default_value": inspection["volume_default"]},)
+            self.parameters = {0: inspection["volume_default"]}
+            self.vital = {"name": "Vital", "vendor": inspection["vendor"],
+                          "version": version, "identifier": observed_uid,
+                          "rights_class": "third-party-user-supplied"}
+            self.reset_policy = {"name": "fresh-runner-process-and-plugin-instance-per-render",
+                                 "steps": ["instantiate Vital", "apply and read back Volume",
+                                           "activate and process MIDI offline"]}
+        elif (
             observed_uid != PLUGIN_CLASS_UID
             or inspection.get("name") != PLUGIN_NAME
             or inspection.get("vendor") != PLUGIN_VENDOR
@@ -218,6 +240,9 @@ class FixtureHost:
         return {"loaded": True}
 
     def unload_plugin(self) -> dict[str, Any]:
+        self.vital = None
+        self.definitions = PARAMETERS
+        self.reset_policy = RESET_POLICY
         self.plugin_path = None
         self.plugin_sha256 = None
         self.parameters = {
@@ -252,17 +277,18 @@ class FixtureHost:
                 "identifier": PLUGIN_IDENTIFIER,
                 "version": PLUGIN_VERSION,
                 "rights_class": "private-self-authored-no-distribution-grant",
+                **(self.vital or {}),
             },
             "capabilities": {
                 "deterministic_reset": True,
                 "parameter_readback": True,
                 "attempt_id_validation": True,
-                "reset_policy": RESET_POLICY,
+                "reset_policy": self.reset_policy,
             },
         }
 
     def list_parameters(self) -> dict[str, Any]:
-        return {"parameters": [dict(item) for item in PARAMETERS]}
+        return {"parameters": [dict(item) for item in self.definitions]}
 
     def set_parameters(self, params: dict[str, Any]) -> dict[str, Any]:
         values = params.get("parameters")
@@ -323,9 +349,10 @@ class FixtureHost:
         self.attempt_ids.add(attempt_id)
         started_at = observed_at()
 
-        lines = ["MFIXTURE/1", "sample_rate 44100", f"num_samples {num_samples}"]
+        lines = ["VITAL/1" if self.vital else "MFIXTURE/1", "sample_rate 44100", f"num_samples {num_samples}"]
         for index in sorted(self.parameters):
-            lines.append(f"param {index} {self.parameters[index]:.17g}")
+            native_id = self.definitions[index]["parameter_id"] if self.vital else index
+            lines.append(f"param {native_id} {self.parameters[index]:.17g}")
         for entry in midi_events:
             if not isinstance(entry, dict):
                 raise RpcError(-32602, "MIDI event must be an object")
@@ -381,7 +408,7 @@ class FixtureHost:
         validate_readback(self.parameters, actual)
         self._append_attempt(
             {
-                "schema": "method-fixture.render-trace/v1",
+                "schema": "vital.render-trace/v1" if self.vital else "method-fixture.render-trace/v1",
                 "attempt_id": attempt_id,
                 "started_at_utc": started_at,
                 "completed_at_utc": observed_at(),
@@ -392,12 +419,12 @@ class FixtureHost:
                 "parameter_readback": [
                     {
                         "index": index,
-                        "parameter_id": str(PARAMETERS[index]["parameter_id"]),
+                        "parameter_id": str(self.definitions[index]["parameter_id"]),
                         "value": float(actual[index]),
                     }
-                    for index in range(len(PARAMETERS))
+                    for index in range(len(self.definitions))
                 ],
-                "reset_policy": RESET_POLICY,
+                "reset_policy": self.reset_policy,
                 "output": {
                     "name": output_path.name,
                     "bytes": output_path.stat().st_size,

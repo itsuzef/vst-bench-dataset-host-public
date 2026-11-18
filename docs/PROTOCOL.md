@@ -1,5 +1,7 @@
 # Local host protocol
 
+For the macOS Vital 1.0.6 Volume profile, see [Vital instructions](VITAL.md). The fixture protocol below describes Method Fixture.
+
 The host implements JSON-RPC 2.0 over HTTP POST at `127.0.0.1`. It does not
 listen on non-loopback interfaces.
 

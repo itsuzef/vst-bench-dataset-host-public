@@ -1,5 +1,7 @@
 # vst-bench-dataset-host
 
+For the macOS Vital 1.0.6 Volume profile, see [Vital instructions](docs/VITAL.md). The fixture protocol below describes Method Fixture.
+
 A sample-free VST3 test instrument and offline host for demonstrating
 [`vst-bench-ml`](https://github.com/itsuzef/vst-bench-ml-public) dataset generation and checking its provenance.
 The fixture synthesizes waveforms from MIDI; no sample pack is needed.

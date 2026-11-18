@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "fixture/ids.h"
+#include "public.sdk/source/vst/hosting/hostclasses.h"
 
 #include "pluginterfaces/base/funknown.h"
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
@@ -46,6 +47,7 @@ struct MidiEvent {
 };
 
 struct Request {
+  bool vital = false;
   int32 sample_rate = 0;
   int32 num_samples = 0;
   std::vector<Parameter> parameters;
@@ -98,13 +100,17 @@ Plugin loadPlugin(const std::string &path) {
     throw std::runtime_error("could not load VST3 module: " + error);
   }
 
+  static auto context = Steinberg::owned(new Steinberg::Vst::HostApplication);
+  Steinberg::Vst::PluginContextFactory::instance().setPluginContext(context);
   const auto factory = module->getFactory();
+  factory.setHostContext(context);
   for (const auto &class_info : factory.classInfos()) {
     if (class_info.category() != kVstAudioEffectClass) {
       continue;
     }
     auto provider = Steinberg::owned(
         new Steinberg::Vst::PlugProvider(factory, class_info, true));
+    if (!provider->initialize()) throw std::runtime_error("component initialization failed");
     Steinberg::OPtr<IComponent> component = provider->getComponent();
     Steinberg::OPtr<IEditController> controller = provider->getController();
     auto processor = Steinberg::U::cast<IAudioProcessor>(component);
@@ -129,10 +135,11 @@ Request readRequest(const std::string &path) {
 
   Request request;
   std::string token;
-  if (!(source >> token) || token != "MFIXTURE/1") {
+  if (!(source >> token) || (token != "MFIXTURE/1" && token != "VITAL/1")) {
     throw std::runtime_error("malformed render request header");
   }
 
+  request.vital = token == "VITAL/1";
   while (source >> token) {
     if (token == "sample_rate") {
       source >> request.sample_rate;
@@ -166,18 +173,18 @@ Request readRequest(const std::string &path) {
   if (request.sample_rate < 1 || request.num_samples < 1) {
     throw std::runtime_error("sample_rate and num_samples must be positive");
   }
-  if (request.parameters.size() != MethodFixture::kParameterCount) {
+  if (request.parameters.size() != (request.vital ? 1U : MethodFixture::kParameterCount)) {
     throw std::runtime_error("render request must bind all fixture parameters");
   }
 
   std::array<bool, MethodFixture::kParameterCount> seen{};
   for (const auto &parameter : request.parameters) {
-    if (parameter.id >= MethodFixture::kParameterCount ||
-        parameter.value < 0.0 || parameter.value > 1.0 || seen[parameter.id]) {
+    if ((!request.vital && parameter.id >= MethodFixture::kParameterCount) ||
+        parameter.value < 0.0 || parameter.value > 1.0 || (!request.vital && seen[parameter.id])) {
       throw std::runtime_error(
           "render request has invalid or duplicate parameter");
     }
-    seen[parameter.id] = true;
+    if (!request.vital) seen[parameter.id] = true;
   }
   for (const auto &event : request.events) {
     if (event.offset < 0 || event.offset >= request.num_samples ||
@@ -248,9 +255,25 @@ void writeWav(const std::string &path, int32 sample_rate, const float *left,
   }
 }
 
+Steinberg::Vst::ParameterInfo vitalControl(const Plugin &plugin) {
+  if (plugin.class_info.ID().toString() != "ABCDEF019182FAEB4F70656E5669616C")
+    throw std::runtime_error("unexpected Vital class identity");
+  for (int32 i = 0; i < plugin.controller->getParameterCount(); ++i) {
+    Steinberg::Vst::ParameterInfo info{};
+    if (plugin.controller->getParameterInfo(i, info) != Steinberg::kResultOk) continue;
+    if (std::u16string(info.title) == u"Volume") return info;
+  }
+  throw std::runtime_error("Vital Volume parameter unavailable");
+}
+
 void inspect(const std::string &path) {
   const auto plugin = loadPlugin(path);
-  std::cout << "{\"class_uid\":\""
+  if (plugin.class_info.ID().toString() == "ABCDEF019182FAEB4F70656E5669616C") {
+    auto info = vitalControl(plugin);
+    std::cout << "{\"volume_id\":" << info.id << ",\"volume_default\":"
+              << std::setprecision(17) << info.defaultNormalizedValue << ",";
+  } else std::cout << "{";
+  std::cout << "\"class_uid\":\""
             << jsonEscape(plugin.class_info.ID().toString()) << "\",\"name\":\""
             << jsonEscape(plugin.class_info.name()) << "\",\"vendor\":\""
             << jsonEscape(plugin.vendor) << "\",\"parameter_count\":"
@@ -266,8 +289,10 @@ void render(const std::string &plugin_path, const std::string &request_path,
   const Request request = readRequest(request_path);
   auto plugin = loadPlugin(plugin_path);
 
+  if (request.vital && request.parameters.front().id != vitalControl(plugin).id)
+    throw std::runtime_error("invalid Vital parameter id");
   SpeakerArrangement output_arrangement = SpeakerArr::kStereo;
-  if (plugin.processor->setBusArrangements(nullptr, 0, &output_arrangement,
+  if (!request.vital && plugin.processor->setBusArrangements(nullptr, 0, &output_arrangement,
                                            1) != kResultOk) {
     throw std::runtime_error("fixture rejected stereo output arrangement");
   }
@@ -293,15 +318,20 @@ void render(const std::string &plugin_path, const std::string &request_path,
   data.symbolicSampleSize = kSample32;
   data.numSamples = request.num_samples;
 
+  if (request.vital) {
+    for (int32 bus = 0; bus < data.numInputs; ++bus)
+      for (int32 ch = 0; ch < data.inputs[bus].numChannels; ++ch)
+        std::fill_n(data.inputs[bus].channelBuffers32[ch], request.num_samples, 0.F);
+  }
   ParameterChanges parameter_changes(
       static_cast<int32>(MethodFixture::kParameterCount));
-  std::array<double, MethodFixture::kParameterCount> readback{};
+  std::vector<double> readback(request.parameters.size());
   for (const auto &parameter : request.parameters) {
     if (plugin.controller->setParamNormalized(parameter.id, parameter.value) !=
         kResultOk) {
       throw std::runtime_error("controller rejected fixture parameter");
     }
-    readback[parameter.id] =
+    readback[request.vital ? 0 : parameter.id] =
         plugin.controller->getParamNormalized(parameter.id);
     int32 queue_index = 0;
     auto *queue = parameter_changes.addParameterData(parameter.id, queue_index);
@@ -351,7 +381,7 @@ void render(const std::string &plugin_path, const std::string &request_path,
   if (process_result != kResultOk) {
     throw std::runtime_error("fixture processing failed");
   }
-  if (data.numOutputs != 1 || data.outputs == nullptr ||
+  if (data.numOutputs < 1 || (!request.vital && data.numOutputs != 1) || data.outputs == nullptr ||
       data.outputs[0].numChannels != 2) {
     throw std::runtime_error("fixture returned an invalid output layout");
   }
