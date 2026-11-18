@@ -16,7 +16,11 @@ Requirements for the demonstrated environment: macOS arm64, Python 3.12,
 CMake >=3.25, AppleClang/Xcode command-line tools, Git, and network access to fetch
 the pinned VST3 SDK. Builds and generated results belong outside the source tree.
 
-The host supports the supplied Method Fixture instrument. Supporting arbitrary
+The revised native host supports Method Fixture and the narrow macOS Vital 1.0.6
+Volume profile linked above. Its Vital checker compares core records with an
+external complete all-kept trace; it does not apply fixture finalization or verify
+mixed kept/dropped/failed runs. Separate Pedalboard repeatability measurements do
+not establish native support for Podolski or Triple Cheese. Supporting arbitrary
 plugins requires another compatible host or additional implementation and validation.
 The larger `vst-bench` MCP testing application is not needed for this workflow.
 
