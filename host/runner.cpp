@@ -48,6 +48,7 @@ struct MidiEvent {
 
 struct Request {
   bool vital = false;
+  bool uhe = false;
   int32 sample_rate = 0;
   int32 num_samples = 0;
   std::vector<Parameter> parameters;
@@ -135,11 +136,12 @@ Request readRequest(const std::string &path) {
 
   Request request;
   std::string token;
-  if (!(source >> token) || (token != "MFIXTURE/1" && token != "VITAL/1")) {
+  if (!(source >> token) || (token != "MFIXTURE/1" && token != "VITAL/1" && token != "UHE/1")) {
     throw std::runtime_error("malformed render request header");
   }
 
-  request.vital = token == "VITAL/1";
+  request.uhe = token == "UHE/1";
+  request.vital = token == "VITAL/1" || request.uhe;
   while (source >> token) {
     if (token == "sample_rate") {
       source >> request.sample_rate;
@@ -173,7 +175,7 @@ Request readRequest(const std::string &path) {
   if (request.sample_rate < 1 || request.num_samples < 1) {
     throw std::runtime_error("sample_rate and num_samples must be positive");
   }
-  if (request.parameters.size() != (request.vital ? 3U : MethodFixture::kParameterCount)) {
+  if (request.parameters.size() != (request.uhe ? 1U : request.vital ? 3U : MethodFixture::kParameterCount)) {
     throw std::runtime_error("render request must bind all fixture parameters");
   }
 
@@ -284,7 +286,21 @@ void inspect(const std::string &path) {
                 << ",\"steps\":" << control.stepCount << "}";
     }
     std::cout << "],";
-  } else std::cout << "{";
+  } else {
+    std::cout << "{\"controls\":[";
+    for (int32 i = 0; i < plugin.controller->getParameterCount(); ++i) {
+      Steinberg::Vst::ParameterInfo control{};
+      if (plugin.controller->getParameterInfo(i, control) != Steinberg::kResultOk)
+        throw std::runtime_error("parameter discovery failed");
+      std::string title;
+      for (auto c : control.title) { if (!c) break; title += c < 128 ? static_cast<char>(c) : '?'; }
+      if (i) std::cout << ",";
+      std::cout << "{\"id\":" << control.id << ",\"name\":\"" << jsonEscape(title)
+                << "\",\"default\":" << std::setprecision(17) << control.defaultNormalizedValue
+                << ",\"steps\":" << control.stepCount << "}";
+    }
+    std::cout << "],";
+  }
   std::cout << "\"class_uid\":\""
             << jsonEscape(plugin.class_info.ID().toString()) << "\",\"name\":\""
             << jsonEscape(plugin.class_info.name()) << "\",\"vendor\":\""
@@ -301,7 +317,16 @@ void render(const std::string &plugin_path, const std::string &request_path,
   const Request request = readRequest(request_path);
   auto plugin = loadPlugin(plugin_path);
 
-  if (request.vital) {
+  if (request.uhe) {
+    const auto uid = plugin.class_info.ID().toString();
+    if ((uid != "D39D5B69D6AF42FA12345678506F646F" &&
+         uid != "D39D5B69D6AF42FA1234567863625379") || request.parameters[0].id != 0)
+      throw std::runtime_error("unsupported u-he profile");
+    ParameterInfo info{};
+    if (plugin.controller->getParameterInfo(0, info) != kResultOk ||
+        info.id != 0 || std::u16string(info.title) != u"Output")
+      throw std::runtime_error("u-he Output mapping mismatch");
+  } else if (request.vital) {
     const std::array<std::u16string, 3> names{u"Volume", u"Oscillator 1 Pan", u"Voice Transpose"};
     for (size_t i = 0; i < names.size(); ++i)
       if (request.parameters[i].id != vitalControl(plugin, names[i]).id)
@@ -388,10 +413,13 @@ void render(const std::string &plugin_path, const std::string &request_path,
   }
   data.inputEvents = &event_list;
 
-  if (plugin.component->setActive(true) != kResultOk ||
-      plugin.processor->setProcessing(true) != kResultOk) {
-    throw std::runtime_error("fixture activation failed");
-  }
+  const auto active_result = plugin.component->setActive(true);
+  if (active_result != kResultOk)
+    throw std::runtime_error("component activation failed: " + std::to_string(active_result));
+  const auto processing_result = plugin.processor->setProcessing(true);
+  // These two u-he builds return kNotImplemented; retain strict fixture/Vital checks.
+  if (processing_result != kResultOk && !(request.uhe && processing_result == kNotImplemented))
+    throw std::runtime_error("processor activation failed: " + std::to_string(processing_result));
   const tresult process_result = plugin.processor->process(data);
   plugin.processor->setProcessing(false);
   plugin.component->setActive(false);
@@ -407,7 +435,8 @@ void render(const std::string &plugin_path, const std::string &request_path,
            data.outputs[0].channelBuffers32[0],
            data.outputs[0].channelBuffers32[1], request.num_samples);
 
-  std::cout << std::setprecision(17) << "{\"samples\":" << request.num_samples
+  std::cout << std::setprecision(17) << "{\"processing_result\":" << processing_result
+            << ",\"samples\":" << request.num_samples
             << ",\"readback\":[";
   for (std::size_t index = 0; index < readback.size(); ++index) {
     if (index != 0U) {

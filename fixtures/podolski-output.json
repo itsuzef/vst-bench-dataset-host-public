@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "plugin": "D39D5B69D6AF42FA12345678506F646F",
+  "param_count": 1,
+  "source": "podolski V1.2.3 discovered native Output profile",
+  "params": [
+    {
+      "id": "0",
+      "index": 0,
+      "name": "Output",
+      "type": "float",
+      "min": 0,
+      "max": 1,
+      "default": 0.5
+    }
+  ]
+}

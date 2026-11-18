@@ -19,11 +19,14 @@ def rows(path):
     return [json.loads(line) for line in path.read_text().splitlines() if line]
 
 
-def verify(dataset: Path, trace: Path, plan_path: Path | None = None) -> None:
+def verify(dataset: Path, trace: Path, plan_path: Path | None = None, *,
+           identity=('ABCDEF019182FAEB4F70656E5669616C', '1.0.6'),
+           control_ids=None, schema='vital.render-trace/v1') -> None:
+    control_ids = CONTROL_IDS if control_ids is None else control_ids
     manifest = verify_manifest(dataset / 'manifest.json')
     request = manifest['request']
     plugin = manifest['identities']['plugin']
-    if (plugin['identifier'], plugin['version']) != ('ABCDEF019182FAEB4F70656E5669616C', '1.0.6'):
+    if (plugin['identifier'], plugin['version']) != identity:
         raise ValueError('unexpected Vital identity')
     if request['signal_mode'] != 'all':
         raise ValueError('expected all signals per patch')
@@ -50,7 +53,7 @@ def verify(dataset: Path, trace: Path, plan_path: Path | None = None) -> None:
         if attempt not in by_id:
             raise ValueError('duplicate or unexpected terminal entry')
         entry = by_id.pop(attempt)
-        if entry['schema'] != 'vital.render-trace/v1':
+        if entry['schema'] != schema:
             raise ValueError('unexpected trace schema')
         if status not in ('kept', 'drop', 'failure'):
             raise ValueError('unknown terminal status')
@@ -75,7 +78,7 @@ def verify(dataset: Path, trace: Path, plan_path: Path | None = None) -> None:
             raise ValueError('readback index mismatch')
         for index, value in vector.items():
             rb = bound[index]
-            if rb['parameter_id'] != CONTROL_IDS[index] or not math.isclose(rb['value'], value, abs_tol=5.1e-7, rel_tol=0):
+            if rb['parameter_id'] != control_ids[index] or not math.isclose(rb['value'], value, abs_tol=5.1e-7, rel_tol=0):
                 raise ValueError('parameter readback mismatch')
         if status == 'kept' and any(not math.isclose(record['param_vector'][str(k)], v, abs_tol=5.1e-7, rel_tol=0) for k,v in vector.items()):
             raise ValueError('record parameter mismatch')

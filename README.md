@@ -47,3 +47,5 @@ The [0.1.0 Zenodo archive](https://doi.org/10.5281/zenodo.22924073) remains avai
 Use the exact version and commit for later releases; see [CITATION.cff](CITATION.cff).
 Output identity is limited to tested pinned environments, and the fixture does
 not establish scientific suitability or representativeness of other plugins.
+
+Native u-he profiles: see [Podolski/Triple Cheese walkthrough](docs/UHE.md) for bounded Output-control generation, fresh-process comparison and external trace verification.

@@ -234,6 +234,27 @@ class FixtureHost:
             self.reset_policy = {"name": "fresh-runner-process-and-plugin-instance-per-render",
                                  "steps": ["instantiate Vital", "apply and read back three discovered controls",
                                            "activate and process MIDI offline"]}
+        elif observed_uid in {"D39D5B69D6AF42FA12345678506F646F", "D39D5B69D6AF42FA1234567863625379"}:
+            expected_name, expected_version = {
+                "D39D5B69D6AF42FA12345678506F646F": ("Podolski", "V1.2.3"),
+                "D39D5B69D6AF42FA1234567863625379": ("TripleCheese", "V1.3.0"),
+            }[observed_uid]
+            with (plugin_path / "Contents/Info.plist").open("rb") as stream:
+                version = plistlib.load(stream)["CFBundleShortVersionString"]
+            controls = [c for c in inspection.get("controls", []) if c["id"] == 0 and c["name"] == "Output"]
+            if (inspection.get("sdk_commit") != SDK_COMMIT or inspection.get("name") != expected_name
+                    or inspection.get("vendor") != "u-he" or version != expected_version or len(controls) != 1):
+                raise RpcError(-32011, "unsupported u-he profile")
+            control = controls[0]
+            self.definitions = ({"index": 0, "parameter_id": "0", "name": "Output",
+                                 "num_steps": control["steps"] or 2147483647,
+                                 "default_value": control["default"]},)
+            self.parameters = {0: control["default"]}
+            self.vital = {"name": expected_name, "vendor": "u-he", "version": version,
+                          "identifier": observed_uid, "rights_class": "third-party-user-supplied"}
+            self.reset_policy = {"name": "fresh-runner-process-and-plugin-instance-per-render",
+                                 "steps": ["instantiate " + expected_name, "apply and read back Output ID 0",
+                                           "activate default buses and process MIDI offline"]}
         elif (
             observed_uid != PLUGIN_CLASS_UID
             or inspection.get("name") != PLUGIN_NAME
@@ -288,7 +309,7 @@ class FixtureHost:
                 **(self.vital or {}),
             },
             "capabilities": {
-                "deterministic_reset": True,
+                "deterministic_reset": True,  # Fresh-instance policy, not a bit-identical-audio guarantee.
                 "parameter_readback": True,
                 "attempt_id_validation": True,
                 "reset_policy": self.reset_policy,
@@ -371,7 +392,7 @@ class FixtureHost:
         self.attempt_ids.add(attempt_id)
         started_at = observed_at()
 
-        lines = ["VITAL/1" if self.vital else "MFIXTURE/1", "sample_rate 44100", f"num_samples {num_samples}"]
+        lines = [("VITAL/1" if self.vital["name"] == "Vital" else "UHE/1") if self.vital else "MFIXTURE/1", "sample_rate 44100", f"num_samples {num_samples}"]
         for index in sorted(self.parameters):
             native_id = self.definitions[index]["parameter_id"] if self.vital else index
             lines.append(f"param {native_id} {self.parameters[index]:.17g}")
@@ -430,7 +451,7 @@ class FixtureHost:
         validate_readback(self.parameters, actual)
         self._append_attempt(
             {
-                "schema": "vital.render-trace/v1" if self.vital else "method-fixture.render-trace/v1",
+                "schema": ("vital.render-trace/v1" if self.vital["name"] == "Vital" else "uhe.render-trace/v1") if self.vital else "method-fixture.render-trace/v1",
                 "attempt_id": attempt_id,
                 "started_at_utc": started_at,
                 "completed_at_utc": observed_at(),
