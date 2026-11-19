@@ -26,9 +26,17 @@ SDK identity. Any mismatch fails with `-32011`.
 - source repository label, source revision, and dirty flag;
 - server and runner SHA-256 values;
 - build mode and pinned SDK commit;
-- canonical plugin path and aggregate bundle SHA-256;
+- canonical plugin path and aggregate bundle SHA-256, with `sha256_algorithm`
+  `vst-bench.path-tree-sha256/v1` (sorted relative paths; for each: path, NUL,
+  kind, file bytes or link target, NUL; a single file is its plain SHA-256);
 - plugin format, name, vendor, stable identifier, version, and rights class;
 - deterministic-reset, parameter-readback, and attempt-ID capabilities.
+
+These values are the host's own report. Package 0.2.0.dev0 hashes the plugin path
+itself with the same algorithm and refuses to render if the two differ; with
+`--host-executable host/server.py` it does the same for the server file, and
+`--expect-identities FILE` compares both with values obtained elsewhere. None of
+this shows which process answered on the port.
 
 For a Git checkout the revision is its commit. In archive mode, `source_kind`
 is `archive`, `source_archive` binds the manifest and complete file-list hashes,

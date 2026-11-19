@@ -300,6 +300,7 @@ class FixtureHost:
             "plugin": {
                 "path": str(self.plugin_path),
                 "sha256": self.plugin_sha256,
+                "sha256_algorithm": "vst-bench.path-tree-sha256/v1",  # sha256_path above
                 "format": "VST3",
                 "name": PLUGIN_NAME,
                 "vendor": PLUGIN_VENDOR,
