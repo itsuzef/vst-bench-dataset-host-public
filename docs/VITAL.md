@@ -31,8 +31,19 @@ its digest/count against the core manifest, one terminal record or event per
 planned observation, and matching requested parameters/readbacks for each native
 render. It supports render-stage failures only, not set-parameter failures,
 process failures after successful rendering, or unattempted suffixes after abort.
-Missing, duplicate and unexpected attempts fail closed. The core CLI still
-aborts on failure; it has not gained a complete terminal ledger itself.
+Missing, duplicate and unexpected attempts fail closed.
+
+Since package 0.2.0.dev0 the core records one outcome per planned attempt itself
+(`attempts.jsonl`, manifest schema v2) and can compare it with this host's trace,
+including the hash of each WAV the host wrote:
+
+```sh
+vst-bench-ml verify --manifest dataset/manifest.json --host-trace trace.jsonl
+```
+
+That core check covers kept, dropped, failed and unattempted renders for any
+plugin. `verify_vital.py` remains the check of requested parameters against
+native readbacks, which the core does not see.
 
 To reproduce the bounded regression with explicit failure injection:
 
