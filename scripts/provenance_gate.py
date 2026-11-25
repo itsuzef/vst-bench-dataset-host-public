@@ -23,7 +23,9 @@ from urllib.parse import unquote, urlparse
 
 from source_archive import ArchiveError, MANIFEST, validate_identity, verify_archive
 
-SCHEMA = "vst-bench-ml.provenance/v1"
+SCHEMA_V1 = "vst-bench-ml.provenance/v1"  # vst-bench-ml 0.1.x
+SCHEMA_V2 = "vst-bench-ml.provenance/v2"  # 0.2.x: adds the core attempts.jsonl
+SUPPORTED_SCHEMAS = (SCHEMA_V1, SCHEMA_V2)
 LEDGER_SCHEMA = "vst-bench-ml.attempt-ledger/v1"
 RESET_POLICY_NAME = "fresh-runner-process-and-plugin-instance-per-render"
 
@@ -685,6 +687,8 @@ def finalize_run(
             }
         )
     append_jsonl(ledger_path, ledger_entries)
+    if manifest.get("schema") == SCHEMA_V2:
+        _check_core_attempts_against_trace(run_dir, manifest, traces)
 
     package = package_identity(
         package_repo,
@@ -738,6 +742,49 @@ def finalize_run(
     return validate_run(run_dir)
 
 
+def _core_attempt_rows(run_dir: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    identity = manifest.get("artifacts", {}).get("attempt_ledger")
+    if not isinstance(identity, dict) or not identity.get("path"):
+        raise GateError("core attempt ledger is not bound in the manifest")
+    path = run_dir / identity["path"]
+    if not path.is_file() or file_identity(path, run_dir) != identity:
+        raise GateError("bound attempt_ledger artifact mismatch")
+    return read_jsonl(path)
+
+
+def _check_core_attempts_against_trace(
+    run_dir: Path, manifest: dict[str, Any], traces: list[dict[str, Any]]
+) -> None:
+    """The audio the host says it wrote is the audio the package says it received."""
+    rows = {row.get("attempt_id"): row for row in _core_attempt_rows(run_dir, manifest)}
+    for trace in traces:
+        row = rows.get(trace.get("attempt_id"))
+        written, received = trace.get("output"), (row or {}).get("raw_output")
+        if not isinstance(written, dict) or not isinstance(received, dict):
+            raise GateError(f"no host audio identity to compare: {trace.get('attempt_id')}")
+        if (written.get("sha256"), written.get("bytes")) != (
+            received.get("sha256"), received.get("bytes")
+        ):
+            raise GateError(f"host audio differs from core attempt ledger: {trace['attempt_id']}")
+
+
+def _check_core_attempts(
+    run_dir: Path, manifest: dict[str, Any], records: list[dict[str, Any]], attempt_ids: list
+) -> None:
+    """Schema v2: the core ledger must tell the same all-kept story as the fixture ledger."""
+    rows = _core_attempt_rows(run_dir, manifest)
+    if [row.get("attempt_id") for row in rows] != attempt_ids:
+        raise GateError("core attempt ledger does not reconcile with the fixture ledger")
+    outputs = {f"{record['patch_id']}_{record['signal']}": record.get("output") for record in records}
+    for row in rows:
+        if row.get("disposition") != "kept" or row.get("output") != outputs[row["attempt_id"]]:
+            raise GateError(f"core attempt ledger disagrees with records: {row['attempt_id']}")
+    expected_counts = {"planned": len(rows), "kept": len(rows), "dropped": 0,
+                       "failed": 0, "not_attempted": 0}
+    if manifest.get("attempts") != expected_counts:
+        raise GateError("manifest attempt counts do not reconcile with the core attempt ledger")
+
+
 def append_negative_evidence(
     run_dir: Path, evidence: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -774,6 +821,8 @@ def append_negative_evidence(
 def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> None:
     """Reject unlisted files and links without traversing linked directories."""
     identities = [artifacts["records"], artifacts["failure_ledger"], *artifacts["outputs"]]
+    if "attempt_ledger" in artifacts:  # schema v2
+        identities.append(artifacts["attempt_ledger"])
     allowed = {manifest_name, *(item["path"] for item in identities)}
     try:
         def walk_error(error: OSError) -> None:
@@ -800,7 +849,7 @@ def validate_run(
 ) -> dict[str, Any]:
     manifest_path = run_dir / "manifest.json"
     manifest = read_json(manifest_path)
-    if manifest.get("schema") != SCHEMA:
+    if manifest.get("schema") not in SUPPORTED_SCHEMAS:
         raise GateError("unsupported manifest schema")
     integrity = manifest.get("integrity")
     if not isinstance(integrity, dict):
@@ -984,6 +1033,10 @@ def validate_run(
         raise GateError("explicit render counts do not reconcile")
     if len(readbacks) != len(attempts):
         raise GateError("manifest readback count does not reconcile")
+    if manifest["schema"] == SCHEMA_V2:
+        _check_core_attempts(run_dir, manifest, records, attempt_ids)
+    elif "attempt_ledger" in artifacts:
+        raise GateError("schema v1 manifest must not bind a core attempt ledger")
 
     if required_negative_cases is not None:
         observed = {entry.get("case_id") for entry in negative}
