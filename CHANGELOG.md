@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1
+
+- Fixture conformance now runs on vst-bench-ml 0.2.0 datasets. The gate accepts
+  manifest schema v2, requires the core `attempts.jsonl` to agree with the fixture
+  ledger, the records and the manifest counts, and compares the audio hashes in
+  the host trace with the hashes the package recorded. Schema v1 is still accepted.
+- The pinned package identity is the released 0.2.0 commit and PyPI wheel. The
+  expected plan and audio hashes are unchanged from 0.1.1.
+- CI validates the wheel and sdist downloaded from PyPI.
+
 ## 0.2.0
 
 - Reject unlisted dataset files, symbolic links, and non-regular entries during verification.

@@ -9,10 +9,9 @@
 5. Publish versioned source tags and the validated Python distribution. Preserve
    existing release tags and historical Zenodo archives.
 
-Release 0.2.0 is the exception to step 2: the conformance gate reads schema v1
-manifests, so `fixtures/expected-output.json` keeps the vst-bench-ml 0.1.1
-identity. Datasets written by package 0.2.0 are checked by the core verifier and
-the Vital and u-he checkers.
+Companion 0.2.0 kept the vst-bench-ml 0.1.1 identity because its gate read only
+schema v1 manifests. Since 0.2.1 the gate also reads schema v2 and pins the
+released vst-bench-ml 0.2.0 commit and PyPI wheel.
 
 Run host unit checks with the package's locked development environment:
 

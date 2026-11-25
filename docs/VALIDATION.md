@@ -63,12 +63,12 @@ source "$WORK_DIR/validation-venv/bin/activate"
 python -m pip install --require-hashes -r "$PACKAGE_DIR/requirements/lock.txt"
 python -m pip install build
 python -m build "$PACKAGE_DIR" --outdir "$WORK_DIR/dist"
-python -m pip install --no-deps "$WORK_DIR/dist/vst_bench_ml-0.1.1-py3-none-any.whl"
+python -m pip install --no-deps "$WORK_DIR/dist/vst_bench_ml-0.2.0-py3-none-any.whl"
 sh "$HOST_DIR/scripts/build.sh" "$WORK_DIR/build"
 python -B "$HOST_DIR/scripts/validate.py" \
   --build-dir "$WORK_DIR/build" --package-repo "$PACKAGE_DIR" \
-  --package-wheel "$WORK_DIR/dist/vst_bench_ml-0.1.1-py3-none-any.whl" \
-  --package-sdist "$WORK_DIR/dist/vst_bench_ml-0.1.1.tar.gz" \
+  --package-wheel "$WORK_DIR/dist/vst_bench_ml-0.2.0-py3-none-any.whl" \
+  --package-sdist "$WORK_DIR/dist/vst_bench_ml-0.2.0.tar.gz" \
   --dependency-lock "$PACKAGE_DIR/requirements/lock.txt" \
   --python "$WORK_DIR/validation-venv/bin/python" \
   --work-dir "$WORK_DIR/validation-results"
