@@ -5,11 +5,10 @@ tools, CMake >=3.25, and Git first. Use an empty working directory. Commands are
 for a POSIX shell and keep environments, builds, and outputs outside source roots.
 
 Python 3.12 below is an example interpreter, not a requirement that all users
-recreate the historical validation stack. The revised package source allows
-compatible dependencies for ordinary installation; published 0.1.1 retains its
-original pins until a new release. Install the revised package checkout to test
-that policy before release. The exact historical reproduction procedure still
-uses its pinned Python/dependency environment. See the package's
+recreate the historical validation stack. Package 0.2.0 allows
+compatible dependencies for ordinary installation; version 0.1.1 retains its
+original pins. The exact historical reproduction procedure still
+uses its pinned Python/dependency environment and package 0.1.1. See the package's
 [installation guide](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/INSTALL.md).
 
 The Python package's Windows/Linux/macOS compatibility matrix is separate from
@@ -26,7 +25,7 @@ git clone https://github.com/itsuzef/vst-bench-dataset-host-public.git
 HOST_DIR="$WORK_DIR/vst-bench-dataset-host-public"
 python3.12 -m venv "$WORK_DIR/venv"
 source "$WORK_DIR/venv/bin/activate"
-python -m pip install vst-bench-ml==0.1.1
+python -m pip install vst-bench-ml==0.2.0
 ```
 
 Alternatively, install from the public package checkout:
@@ -36,7 +35,7 @@ git clone https://github.com/itsuzef/vst-bench-ml-public.git
 python -m pip install "$WORK_DIR/vst-bench-ml-public"
 ```
 
-For an exact release, check out the matching `v0.1.1` tag.
+For an exact release, check out the matching `v0.2.0` tag in both repositories.
 Ordinary pip installation resolves transitive dependencies. For the full locked
 validation environment and its exact expected hashes, follow [VALIDATION.md](VALIDATION.md).
 
@@ -81,8 +80,8 @@ vst-bench-ml verify --manifest "$WORK_DIR/output/manifest.json"
 ```
 
 Expected summary: `verified: 8 kept, 0 dropped, 0 failures`. The output directory
-contains `manifest.json`, `records.jsonl`, `failures.jsonl`, and eight `audio/*.npz`
-files. `--keep-bad` retains intentionally silent fixture settings; it is not an
+contains `manifest.json`, `records.jsonl`, `failures.jsonl`, `attempts.jsonl`, and
+eight `audio/*.npz` files. `--keep-bad` retains intentionally silent fixture settings; it is not an
 audio-quality recommendation. See the [output guide](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/USAGE.md).
 
 Stop the server with Ctrl-C. Restart it before another render and choose a new

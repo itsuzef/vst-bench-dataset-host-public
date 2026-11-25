@@ -32,7 +32,7 @@ SDK identity. Any mismatch fails with `-32011`.
 - plugin format, name, vendor, stable identifier, version, and rights class;
 - deterministic-reset, parameter-readback, and attempt-ID capabilities.
 
-These values are the host's own report. Package 0.2.0.dev0 hashes the plugin path
+These values are the host's own report. Package 0.2.0 hashes the plugin path
 itself with the same algorithm and refuses to render if the two differ; with
 `--host-executable host/server.py` it does the same for the server file, and
 `--expect-identities FILE` compares both with values obtained elsewhere. None of

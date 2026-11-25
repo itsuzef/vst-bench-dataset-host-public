@@ -33,7 +33,7 @@ render. It supports render-stage failures only, not set-parameter failures,
 process failures after successful rendering, or unattempted suffixes after abort.
 Missing, duplicate and unexpected attempts fail closed.
 
-Since package 0.2.0.dev0 the core records one outcome per planned attempt itself
+Since package 0.2.0 the core records one outcome per planned attempt itself
 (`attempts.jsonl`, manifest schema v2) and can compare it with this host's trace,
 including the hash of each WAV the host wrote:
 
