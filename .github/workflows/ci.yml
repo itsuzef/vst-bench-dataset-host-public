@@ -37,3 +37,31 @@ jobs:
             --package-sdist "$RUNNER_TEMP/dist/vst_bench_ml-$PACKAGE_VERSION.tar.gz" \
             --dependency-lock "$RUNNER_TEMP/package/requirements/lock.txt" \
             --python "$(command -v python)" --work-dir "$RUNNER_TEMP/results"
+      - name: Export sealed source snapshots
+        run: |
+          python -B scripts/export_archives.py --package-repo "$RUNNER_TEMP/package" --output "$RUNNER_TEMP/export"
+          mkdir "$RUNNER_TEMP/sealed"
+          cd "$RUNNER_TEMP/sealed"
+          for archive in "$RUNNER_TEMP"/export/*.zip; do unzip -q "$archive"; done
+          shasum -a 256 "$RUNNER_TEMP"/export/*.zip
+      - name: Build and validate from the sealed snapshots alone
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          cd "$RUNNER_TEMP/sealed"
+          HOST_SNAPSHOT="$PWD/$(echo vst-bench-dataset-host-*)"
+          PACKAGE_SNAPSHOT="$PWD/$(echo vst-bench-ml-*)"
+          sh "$HOST_SNAPSHOT/scripts/build.sh" "$RUNNER_TEMP/sealed-build"
+          python -B "$HOST_SNAPSHOT/scripts/validate.py" --build-dir "$RUNNER_TEMP/sealed-build" \
+            --package-repo "$PACKAGE_SNAPSHOT" \
+            --package-wheel "$RUNNER_TEMP/dist/vst_bench_ml-$PACKAGE_VERSION-py3-none-any.whl" \
+            --package-sdist "$RUNNER_TEMP/dist/vst_bench_ml-$PACKAGE_VERSION.tar.gz" \
+            --dependency-lock "$PACKAGE_SNAPSHOT/requirements/lock.txt" \
+            --python "$(command -v python)" --work-dir "$RUNNER_TEMP/sealed-results"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sealed-source-snapshots
+          path: |
+            ${{ runner.temp }}/export/*.zip
+            ${{ runner.temp }}/export/archive-receipt.json
+          if-no-files-found: error

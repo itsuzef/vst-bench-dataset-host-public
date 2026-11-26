@@ -6,6 +6,10 @@
   previously left out the new package modules and the Vital and u-he scripts.
 - The exporter stops when a tracked file is neither archived nor explicitly
   excluded, and names the companion snapshot with the companion's own version.
+- CI exports the sealed snapshots, rebuilds from them and runs the full validation
+  from the snapshots alone.
+- The build requirement is stated as Xcode: the VST3 SDK's build calls `xcodebuild`,
+  so the Command Line Tools alone are not enough.
 
 ## 0.2.1
 
