@@ -12,7 +12,8 @@ python3.12 -B scripts/export_archives.py \
 ```
 
 The package commit must match `fixtures/expected-output.json`, and both source
-trees must be clean. The exporter copies an explicit allowlist, writes source
+trees must be clean. The exporter copies an explicit allowlist and stops if a
+tracked file is neither on it nor explicitly excluded. It writes source
 manifests, and substitutes the archive package identity into host expectations.
 It does not publish anything. Its Python requirement is 3.11+ (`tomllib`); the
 complete documented environment uses Python 3.12.

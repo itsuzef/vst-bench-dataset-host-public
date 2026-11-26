@@ -35,7 +35,7 @@ git clone https://github.com/itsuzef/vst-bench-ml-public.git
 python -m pip install "$WORK_DIR/vst-bench-ml-public"
 ```
 
-For an exact release, check out package tag `v0.2.0` and companion tag `v0.2.1`.
+For an exact release, check out package tag `v0.2.0` and companion tag `v0.2.2`.
 Ordinary pip installation resolves transitive dependencies. For the full locked
 validation environment and its exact expected hashes, follow [VALIDATION.md](VALIDATION.md).
 

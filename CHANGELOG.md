@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+- The archive exporter includes every source file added in 0.2.0 and 0.2.1. It
+  previously left out the new package modules and the Vital and u-he scripts.
+- The exporter stops when a tracked file is neither archived nor explicitly
+  excluded, and names the companion snapshot with the companion's own version.
+
 ## 0.2.1
 
 - Fixture conformance now runs on vst-bench-ml 0.2.0 datasets. The gate accepts

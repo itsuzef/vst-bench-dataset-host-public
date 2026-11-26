@@ -35,6 +35,21 @@ PACKAGE_FILES = {
     "tests/test_export.py", "tests/test_install.py", "tests/test_introspect.py",
     "tests/test_provenance.py", "tests/test_quality.py", "tests/test_sampling.py",
     "tests/test_seeding.py",
+    # added in 0.2.0
+    "docs/INTEROP.md", "docs/examples/fixture-output/README.md",
+    "docs/examples/fixture-output/manifest.json", "docs/examples/fixture-output/records.jsonl",
+    "docs/examples/reuse-table/README.md", "docs/examples/reuse-table/export.py",
+    "scripts/check_compatibility.py", "scripts/prepare_python310_probe.py",
+    "src/vst_bench_ml/attempts.py", "src/vst_bench_ml/identity.py",
+    "src/vst_bench_ml/interop.py", "src/vst_bench_ml/signing.py",
+    "tests/scripted_host.py", "tests/test_attempts.py", "tests/test_identity.py",
+    "tests/test_interop.py", "tests/test_signing.py",
+}
+# Tracked files deliberately left out of a snapshot. Every other tracked file must
+# be allowlisted above, so a new source file cannot be dropped silently.
+PACKAGE_EXCLUDED = {
+    ".gitignore", ".github/workflows/ci.yml", ".github/workflows/publish.yml",
+    ".github/workflows/python310-probe.yml",
 }
 HOST_FILES = {
     "CITATION.cff", "CMakeLists.txt", "LICENSE", "OUTPUT-LICENSE", "THIRD_PARTY.md",
@@ -48,11 +63,36 @@ HOST_FILES = {
     "scripts/build.sh", "scripts/provenance_gate.py", "scripts/validate.py",
     "scripts/source_archive.py", "scripts/export_archives.py", "scripts/check_environment.py",
     "tests/test_server.py", "tests/test_archives.py", "tests/test_dependencies.py", "tests/test_inventory.py",
+    # added in 0.2.0
+    "docs/UHE.md", "docs/VITAL.md", "fixtures/podolski-output.json",
+    "fixtures/triplecheese-output.json", "fixtures/vital-1.0.6-controls.json",
+    "fixtures/vital-1.0.6-volume.json", "scripts/exercise_uhe.py",
+    "scripts/exercise_vital.py", "scripts/verify_uhe.py", "scripts/verify_vital.py",
 }
+# README.md is replaced in a snapshot by docs/ARCHIVE-README.md.
+HOST_EXCLUDED = {".gitignore", ".github/workflows/ci.yml", "README.md"}
 
 
 def git(root: Path, *args: str) -> str:
     return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+
+
+def require_complete(root: Path, allowed: set[str], excluded: set[str]) -> None:
+    """Every tracked file is either archived or explicitly excluded."""
+    tracked = set(git(root, "ls-files").splitlines())
+    unlisted = sorted(tracked - allowed - excluded)
+    if unlisted:
+        raise ValueError(f"tracked files are neither archived nor excluded: {unlisted}")
+    if allowed & excluded:
+        raise ValueError(f"files are both archived and excluded: {sorted(allowed & excluded)}")
+
+
+def host_version(host: Path) -> str:
+    """The companion's own version, from its citation metadata."""
+    for line in (host / "CITATION.cff").read_text(encoding="utf-8").splitlines():
+        if line.startswith("version:"):
+            return line.split(":", 1)[1].strip().strip('"')
+    raise ValueError("host CITATION.cff states no version")
 
 
 def copy_allowed(source: Path, target: Path, names: set[str]) -> None:
@@ -106,10 +146,12 @@ def export(package: Path, host: Path, output: Path, allow_dirty_host: bool = Fal
     package_commit = git(package, "rev-parse", "HEAD")
     if package_commit != expected["package"]["git_commit"]:
         raise ValueError("package commit differs from the validated baseline")
+    require_complete(package, PACKAGE_FILES, PACKAGE_EXCLUDED)
+    require_complete(host, HOST_FILES, HOST_EXCLUDED)
     output.mkdir(parents=True)
     version = tomllib.loads((package / "pyproject.toml").read_text())["project"]["version"]
     package_root = output / f"vst-bench-ml-{version}"
-    host_root = output / f"vst-bench-dataset-host-{version}"
+    host_root = output / f"vst-bench-dataset-host-{host_version(host)}"
     copy_allowed(package, package_root, PACKAGE_FILES)
     package_identity = seal(package_root, "vst-bench-ml", package_commit)
     copy_allowed(host, host_root, HOST_FILES)

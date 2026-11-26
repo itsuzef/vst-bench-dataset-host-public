@@ -19,7 +19,10 @@ from source_archive import (  # noqa: E402
     validate_identity, verify_archive,
 )
 from validate import PACKAGE_QUARANTINE, package_ruff_paths  # noqa: E402
-from export_archives import PACKAGE_FILES, HOST_FILES, zip_snapshot  # noqa: E402
+from export_archives import (  # noqa: E402
+    HOST_EXCLUDED, HOST_FILES, PACKAGE_EXCLUDED, PACKAGE_FILES, host_version,
+    require_complete, zip_snapshot,
+)
 
 
 def write_manifest(root, project="vst-bench-ml"):
@@ -185,6 +188,34 @@ def test_public_git_lint_surface(tmp_path, include_private):
             package_ruff_paths(tmp_path)
     else:
         assert package_ruff_paths(tmp_path) == ["scripts/allowed.py"]
+
+
+def test_host_allowlist_covers_every_tracked_file():
+    repo = Path(__file__).resolve().parents[1]
+    if not (repo / ".git").exists():
+        pytest.skip("a source snapshot has no Git index to compare with")
+    require_complete(repo, HOST_FILES, HOST_EXCLUDED)
+    assert not PACKAGE_FILES & PACKAGE_EXCLUDED
+
+
+def test_unlisted_tracked_file_stops_the_export(tmp_path):
+    subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True)
+    for name in ("kept.py", "left-out.yml", "forgotten.py"):
+        (tmp_path / name).write_text("pass\n")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
+    with pytest.raises(ValueError, match="neither archived nor excluded: \\['forgotten.py'\\]"):
+        require_complete(tmp_path, {"kept.py"}, {"left-out.yml"})
+    require_complete(tmp_path, {"kept.py", "forgotten.py"}, {"left-out.yml"})
+    with pytest.raises(ValueError, match="both archived and excluded"):
+        require_complete(tmp_path, {"kept.py", "forgotten.py", "left-out.yml"}, {"left-out.yml"})
+
+
+def test_host_snapshot_is_named_with_the_host_version(tmp_path):
+    (tmp_path / "CITATION.cff").write_text("title: x\nversion: 9.8.7\n")
+    assert host_version(tmp_path) == "9.8.7"
+    (tmp_path / "CITATION.cff").write_text("title: x\n")
+    with pytest.raises(ValueError, match="no version"):
+        host_version(tmp_path)
 
 
 def test_zip_is_repeatable_and_has_no_history(snapshot, tmp_path):
