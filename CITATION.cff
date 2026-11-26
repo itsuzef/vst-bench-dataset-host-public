@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Hemimy
     given-names: Youssef
-version: 0.2.2
+version: 0.2.3
 license: MIT
 repository-code: "https://github.com/itsuzef/vst-bench-dataset-host-public"
 abstract: >-

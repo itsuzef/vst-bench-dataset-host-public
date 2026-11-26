@@ -19,6 +19,27 @@ set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES_AUDIOHOST OFF CACHE BOOL "" FORCE)
 set(SMTG_RUN_VST_VALIDATOR OFF CACHE BOOL "" FORCE)
 
+# The VST3 SDK asks `xcodebuild` for the Xcode version and stops without one.
+# With only the Command Line Tools selected there is no xcodebuild, so pass the
+# SDK the installed tools' version through the variable it already honours.
+if(APPLE AND NOT DEFINED ENV{XCODE_VERSION})
+    execute_process(COMMAND xcodebuild -version
+        RESULT_VARIABLE xcodebuild_status OUTPUT_QUIET ERROR_QUIET)
+    if(NOT xcodebuild_status EQUAL 0)
+        execute_process(COMMAND pkgutil --pkg-info=com.apple.pkg.CLTools_Executables
+            OUTPUT_VARIABLE command_line_tools ERROR_QUIET)
+        string(REGEX MATCH "version: ([0-9]+\\.[0-9]+)" _ "${command_line_tools}")
+        if(NOT CMAKE_MATCH_1)
+            message(FATAL_ERROR
+                "Neither Xcode nor the Xcode Command Line Tools were found. "
+                "Install one of them (xcode-select --install).")
+        endif()
+        set(XCODE_VERSION "${CMAKE_MATCH_1}")
+        set(ENV{XCODE_VERSION} "${CMAKE_MATCH_1}")
+        message(STATUS "Using Xcode Command Line Tools ${CMAKE_MATCH_1} (no xcodebuild)")
+    endif()
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
     vst3sdk

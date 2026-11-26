@@ -1,7 +1,7 @@
 # Generate your first dataset
 
-This walkthrough targets macOS arm64 and Python 3.12. Install Xcode,
-CMake >=3.25, and Git first. Use an empty working directory. Commands are
+This walkthrough targets macOS arm64 and Python 3.12. Install Xcode or the Xcode
+Command Line Tools, CMake >=3.25, and Git first. Use an empty working directory. Commands are
 for a POSIX shell and keep environments, builds, and outputs outside source roots.
 
 Python 3.12 below is an example interpreter, not a requirement that all users
@@ -35,7 +35,7 @@ git clone https://github.com/itsuzef/vst-bench-ml-public.git
 python -m pip install "$WORK_DIR/vst-bench-ml-public"
 ```
 
-For an exact release, check out package tag `v0.2.0` and companion tag `v0.2.2`.
+For an exact release, check out package tag `v0.2.0` and companion tag `v0.2.3`.
 Ordinary pip installation resolves transitive dependencies. For the full locked
 validation environment and its exact expected hashes, follow [VALIDATION.md](VALIDATION.md).
 
@@ -45,10 +45,8 @@ validation environment and its exact expected hashes, follow [VALIDATION.md](VAL
 sh "$HOST_DIR/scripts/build.sh" "$WORK_DIR/build"
 ```
 
-The build downloads the pinned VST3 SDK. The SDK's build calls `xcodebuild`: with only
-the Command Line Tools selected it stops with `XCode 9 or newer is required`. Select
-Xcode with `xcode-select`, or set `DEVELOPER_DIR` to Xcode's developer directory for
-this command. Expected macOS paths:
+The build downloads the pinned VST3 SDK. It works with Xcode or with only the Command
+Line Tools selected. Expected macOS paths:
 
 - `$WORK_DIR/build/method_fixture_runner`
 - `$WORK_DIR/build/VST3/Release/MethodFixture.vst3`

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+- The build works with only the Xcode Command Line Tools selected. The VST3 SDK asks
+  `xcodebuild` for a version and stopped with `XCode 9 or newer is required`; the
+  build now passes the SDK the tools' version when `xcodebuild` is unavailable.
+  Builds with Xcode selected are unchanged.
+
 ## 0.2.2
 
 - The archive exporter includes every source file added in 0.2.0 and 0.2.1. It

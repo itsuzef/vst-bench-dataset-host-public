@@ -13,9 +13,8 @@ It builds the host and fixture, starts the local server, generates eight outputs
 and verifies the stored dataset.
 
 Requirements for the demonstrated environment: macOS arm64, Python 3.12,
-CMake >=3.25, Xcode (AppleClang), Git, and network access to fetch
-the pinned VST3 SDK. The SDK's build calls `xcodebuild`, so the Command Line Tools
-alone are not enough. Builds and generated results belong outside the source tree.
+CMake >=3.25, Xcode or the Xcode Command Line Tools (AppleClang), Git, and network
+access to fetch the pinned VST3 SDK. Builds and generated results belong outside the source tree.
 
 The revised native host supports Method Fixture and the narrow macOS Vital 1.0.6
 three-control profile linked above. Its Vital checker compares core records and
